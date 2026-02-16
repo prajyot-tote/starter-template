@@ -5,8 +5,9 @@ import type { CreateUser, UpdateUser } from '@/schemas';
 // ============================================
 // USER SERVICE
 // ============================================
-// Business logic layer - sits between routers and database
-// Keeps routers thin and logic reusable
+// Business logic layer - sits between routes and database
+// Keeps routes thin and logic reusable
+// Framework-agnostic (works with REST, tRPC, GraphQL, etc.)
 
 export const userService = {
   async findById(id: string) {
@@ -29,6 +30,10 @@ export const userService = {
       skip: offset,
       orderBy: { createdAt: 'desc' },
     });
+  },
+
+  async count(where?: { role?: 'USER' | 'ADMIN' }) {
+    return db.user.count({ where });
   },
 
   async create(data: CreateUser) {

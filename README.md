@@ -1,117 +1,274 @@
 # Starter Template
 
-A type-safe, schema-first project template with maximum compile-time safety.
+A production-ready, type-safe REST API template with OpenAPI specification.
 
-## What's Pre-Configured (Static)
+## Features
 
-| File | Purpose | Change Frequency |
-|------|---------|------------------|
-| `tsconfig.json` | Maximum TypeScript strictness | Never |
-| `eslint.config.js` | Code style + naming conventions | Rarely |
-| `.dependency-cruiser.js` | Architecture boundary enforcement | Rarely |
-| `.prettierrc` | Code formatting | Never |
-
-## What You Must Define (Dynamic)
-
-| File | Purpose |
-|------|---------|
-| `prisma/schema.prisma` | Your database models |
-| `src/schemas/*.ts` | Your validation rules (Zod) |
+- **REST API** with Fastify (production-grade HTTP server)
+- **OpenAPI 3.0** spec auto-generated from code
+- **Swagger UI** at `/docs` for API documentation
+- **Type-safe** end-to-end (Prisma → Zod → OpenAPI → TypeScript client)
+- **Zod validation** shared between frontend and backend
+- **Architecture enforcement** via dependency-cruiser
 
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
+# Install dependencies
 npm install
 
-# 2. Set up environment
+# Set up environment
 cp .env.example .env
 # Edit .env with your DATABASE_URL
 
-# 3. Generate Prisma client
+# Generate Prisma client
 npm run db:generate
 
-# 4. Push schema to database (development)
+# Push schema to database
 npm run db:push
 
-# 5. Run development server
+# Start development server
 npm run dev
+
+# Open API docs
+open http://localhost:3000/docs
 ```
 
 ## Project Structure
 
 ```
 src/
-├── schemas/           # Shared Zod schemas (FE + BE)
-│   ├── index.ts       # Export all schemas
-│   ├── user.schema.ts # User validation
-│   └── _template.schema.ts  # Copy for new entities
-│
+├── schemas/                 # Shared Zod schemas (FE + BE)
 ├── server/
-│   ├── db/            # Prisma client
-│   ├── services/      # Business logic
-│   └── api/routers/   # API endpoints
-│
+│   ├── db/                  # Prisma client
+│   ├── services/            # Business logic (FAT)
+│   └── api/
+│       ├── routes/          # REST endpoints (THIN)
+│       ├── middleware/      # Auth, error handling
+│       └── openapi/         # OpenAPI generation
 ├── client/
-│   ├── components/    # UI components
-│   ├── hooks/         # Custom hooks
-│   └── api/           # Generated API client
-│
+│   ├── api/                 # Generated types from OpenAPI
+│   ├── components/
+│   └── hooks/
 └── shared/
-    ├── types/         # Shared TypeScript types
-    └── utils/         # Pure utility functions
+    ├── errors/              # AppError class
+    ├── types/
+    └── utils/
+```
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│   Prisma Schema ──▶ Zod Schemas ──▶ OpenAPI Spec ──▶ TypeScript Types  │
+│         │                │               │                │             │
+│         ▼                ▼               ▼                ▼             │
+│   Database Types    Validation      Swagger UI      FE API Client      │
+│                                                                         │
+│   Single source of truth ──────────────────────────▶ Type safety       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## Key Principles
+
+### 1. Services Are FAT, Routes Are THIN
+
+All business logic lives in services. Routes only handle HTTP concerns.
+
+```typescript
+// ✅ Service (FAT) - contains business logic
+export const userService = {
+  async create(data: CreateUser) {
+    const existing = await db.user.findUnique({ where: { email: data.email } });
+    if (existing) throw AppError.conflict('Email exists');
+    return db.user.create({ data });
+  },
+};
+
+// ✅ Route (THIN) - only HTTP concerns
+app.post('/users', async (req, reply) => {
+  const data = createUserSchema.parse(req.body);
+  const user = await userService.create(data);
+  return reply.status(201).send({ success: true, data: user });
+});
+```
+
+### 2. OpenAPI Is The Contract
+
+Every endpoint is documented in OpenAPI. The spec is auto-generated from Zod schemas.
+
+```typescript
+registry.registerPath({
+  method: 'post',
+  path: '/users',
+  tags: ['Users'],
+  request: { body: { content: { 'application/json': { schema: createUserSchema } } } },
+  responses: { 201: { content: { 'application/json': { schema: userSchema } } } },
+});
+```
+
+### 3. Zod Schemas Are Shared
+
+Same schemas validate on backend and frontend:
+
+```typescript
+// src/schemas/user.schema.ts
+export const createUserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1).max(100),
+});
+
+// Backend: validates request
+const data = createUserSchema.parse(req.body);
+
+// Frontend: validates form
+const form = useForm({ resolver: zodResolver(createUserSchema) });
 ```
 
 ## Commands
 
-```bash
-# Development
-npm run dev              # Start dev server
-npm run typecheck        # Type check without emitting
-
-# Quality
-npm run lint             # Run ESLint
-npm run lint:fix         # Fix ESLint issues
-npm run format           # Format with Prettier
-npm run arch:validate    # Validate architecture rules
-npm run validate         # Run all checks
-
-# Database
-npm run db:generate      # Generate Prisma client
-npm run db:push          # Push schema (dev only)
-npm run db:migrate       # Create migration
-npm run db:studio        # Open Prisma Studio
-
-# Testing
-npm run test             # Run tests
-npm run test:coverage    # Run with coverage
-```
-
-## Architecture Rules
-
-The following rules are enforced by dependency-cruiser:
-
-1. **client/** cannot import from **server/** (and vice versa)
-2. **schemas/** cannot import from client or server (must be pure)
-3. **shared/** cannot import from client or server (must be pure)
-4. No circular dependencies anywhere
-5. Client code cannot import Prisma directly
-
-Run `npm run arch:validate` to check. Run `npm run arch:visualize` to generate a diagram.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server with hot reload |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run db:generate` | Generate Prisma client |
+| `npm run db:push` | Push schema to database |
+| `npm run db:migrate` | Create migration |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run api:generate` | Generate OpenAPI spec + client types |
+| `npm run typecheck` | TypeScript validation |
+| `npm run lint` | ESLint validation |
+| `npm run arch:validate` | Architecture validation |
+| `npm run validate` | All validations + tests |
 
 ## Adding a New Entity
 
-1. **Add Prisma model** in `prisma/schema.prisma`
-2. **Run** `npm run db:generate`
-3. **Copy** `src/schemas/_template.schema.ts` to `src/schemas/yourEntity.schema.ts`
-4. **Export** from `src/schemas/index.ts`
-5. **Create** service in `src/server/services/`
-6. **Create** router in `src/server/api/routers/`
+### 1. Add Prisma Model
 
-## Type Safety Guarantees
+```prisma
+// prisma/schema.prisma
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  price       Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+```
 
-- **TypeScript strict mode**: Catches null/undefined errors
-- **Zod schemas**: Runtime validation with inferred types
-- **Prisma types**: Database queries are type-checked
-- **ESLint**: Naming conventions enforced
-- **dependency-cruiser**: Layer violations caught in CI
+```bash
+npm run db:generate
+npm run db:push
+```
+
+### 2. Create Zod Schema
+
+```typescript
+// src/schemas/product.schema.ts
+import { z } from 'zod';
+
+export const productSchema = z.object({
+  id: z.string().cuid(),
+  name: z.string().min(1).max(200),
+  price: z.number().positive(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const createProductSchema = z.object({
+  name: z.string().min(1).max(200),
+  price: z.number().positive(),
+});
+
+export type Product = z.infer<typeof productSchema>;
+export type CreateProduct = z.infer<typeof createProductSchema>;
+```
+
+Export from `src/schemas/index.ts`.
+
+### 3. Create Service
+
+```typescript
+// src/server/services/product.service.ts
+import { db } from '@/server/db';
+import type { CreateProduct } from '@/schemas';
+
+export const productService = {
+  async findMany() { return db.product.findMany(); },
+  async findById(id: string) { return db.product.findUnique({ where: { id } }); },
+  async create(data: CreateProduct) { return db.product.create({ data }); },
+};
+```
+
+Export from `src/server/services/index.ts`.
+
+### 4. Create Routes
+
+Copy `src/server/api/routes/_template.routes.ts` to `product.routes.ts` and implement.
+
+### 5. Generate OpenAPI
+
+```bash
+npm run api:generate
+```
+
+### 6. Verify
+
+```bash
+npm run validate
+open http://localhost:3000/docs
+```
+
+## API Response Format
+
+### Success
+
+```json
+{
+  "success": true,
+  "data": { "id": "...", "name": "..." }
+}
+```
+
+### Success (List)
+
+```json
+{
+  "success": true,
+  "data": [{ "id": "...", "name": "..." }],
+  "meta": { "total": 100, "limit": 20, "offset": 0, "hasMore": true }
+}
+```
+
+### Error
+
+```json
+{
+  "success": false,
+  "error": { "code": "NOT_FOUND", "message": "User not found" }
+}
+```
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | Required |
+| `PORT` | Server port | 3000 |
+| `HOST` | Server host | 0.0.0.0 |
+| `NODE_ENV` | Environment | development |
+| `CORS_ORIGIN` | Allowed origins | * |
+| `LOG_LEVEL` | Pino log level | info |
+
+## Production Checklist
+
+- [ ] Set `NODE_ENV=production`
+- [ ] Configure proper `CORS_ORIGIN`
+- [ ] Set up rate limiting (already included)
+- [ ] Configure authentication (JWT, etc.)
+- [ ] Set up monitoring (APM, logging)
+- [ ] Configure database connection pooling
+- [ ] Set up health checks for load balancer
