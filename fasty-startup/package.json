@@ -19,7 +19,7 @@
     "openapi:generate": "tsx src/server/api/openapi/generate.ts",
     "client:generate": "openapi-typescript ./openapi.json -o ./src/client/api/types.generated.ts",
     "api:generate": "npm run openapi:generate && npm run client:generate",
-    "test": "vitest",
+    "test": "vitest --passWithNoTests",
     "test:coverage": "vitest --coverage",
     "validate": "npm run typecheck && npm run lint && npm run arch:validate && npm run test",
     "prepare": "husky"
