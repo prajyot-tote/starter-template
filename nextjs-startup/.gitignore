@@ -45,3 +45,4 @@ generated/
 
 # Vercel
 .vercel
+*.tsbuildinfo
