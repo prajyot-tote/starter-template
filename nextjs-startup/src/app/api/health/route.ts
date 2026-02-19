@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 // GET /api/health
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   return NextResponse.json({
     success: true,
     data: {
