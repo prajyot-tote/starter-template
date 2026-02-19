@@ -20,6 +20,19 @@ datasource db {
 // ============================================
 // YOUR DOMAIN MODELS GO HERE
 // ============================================
+
+// Placeholder model - delete or modify as needed
+// Prisma requires at least one model to generate the client
+model Example {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// EXAMPLE MODELS (uncomment or use as reference)
+// ============================================
 //
 // Example User model:
 //

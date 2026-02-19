@@ -31,7 +31,10 @@ export const errorResponseSchema = z.object({
 registry.register('ErrorResponse', errorResponseSchema);
 
 // Standard success response wrapper
-export function successResponse<T extends z.ZodType>(schema: T) {
+export function successResponse<T extends z.ZodType>(schema: T): z.ZodObject<{
+  success: z.ZodLiteral<true>;
+  data: T;
+}> {
   return z.object({
     success: z.literal(true),
     data: schema,
@@ -61,8 +64,12 @@ registry.register('PaginationQuery', paginationQuerySchema);
 registry.register('PaginationMeta', paginationMetaSchema);
 
 // Generate OpenAPI document
-export function generateOpenAPIDocument() {
+export function generateOpenAPIDocument(): ReturnType<OpenApiGeneratorV3['generateDocument']> {
   const generator = new OpenApiGeneratorV3(registry.definitions);
+
+  const port = process.env['PORT'] ?? '3000';
+  const apiUrl = process.env['API_URL'] ?? `http://localhost:${port}`;
+  const isDev = process.env['NODE_ENV'] !== 'production';
 
   return generator.generateDocument({
     openapi: '3.0.3',
@@ -73,8 +80,8 @@ export function generateOpenAPIDocument() {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
-        description: 'Development server',
+        url: apiUrl,
+        description: isDev ? 'Development server' : 'Production server',
       },
     ],
     security: [{ BearerAuth: [] }],
