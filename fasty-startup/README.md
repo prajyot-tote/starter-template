@@ -1,15 +1,16 @@
-# Starter Template
+# Fastify Starter Template
 
-A production-ready, type-safe REST API template with OpenAPI specification.
+A production-ready, type-safe REST API template with Fastify, OpenAPI, and Prisma.
 
 ## Features
 
-- **REST API** with Fastify (production-grade HTTP server)
-- **OpenAPI 3.0** spec auto-generated from code
-- **Swagger UI** at `/docs` for API documentation
-- **Type-safe** end-to-end (Prisma → Zod → OpenAPI → TypeScript client)
-- **Zod validation** shared between frontend and backend
-- **Architecture enforcement** via dependency-cruiser
+- **Fastify** - High-performance HTTP server
+- **OpenAPI 3.0** - Auto-generated spec from Zod schemas
+- **Swagger UI** - Interactive API docs at `/docs`
+- **Type-safe** - End-to-end (Prisma → Zod → OpenAPI → TypeScript)
+- **Zod validation** - Shared between frontend and backend
+- **Security** - Helmet, CORS, rate limiting built-in
+- **Architecture enforcement** - Dependency-cruiser prevents violations
 
 ## Quick Start
 
@@ -21,10 +22,8 @@ npm install
 cp .env.example .env
 # Edit .env with your DATABASE_URL
 
-# Generate Prisma client
+# Generate Prisma client and push schema
 npm run db:generate
-
-# Push schema to database
 npm run db:push
 
 # Start development server
@@ -39,21 +38,29 @@ open http://localhost:3000/docs
 ```
 src/
 ├── schemas/                 # Shared Zod schemas (FE + BE)
+│   ├── _template.schema.ts  # Template for new schemas
+│   └── index.ts
+│
 ├── server/
-│   ├── db/                  # Prisma client
+│   ├── db/                  # Prisma client singleton
 │   ├── services/            # Business logic (FAT)
 │   └── api/
 │       ├── routes/          # REST endpoints (THIN)
+│       │   ├── health.routes.ts
+│       │   ├── _template.routes.ts
+│       │   └── index.ts
 │       ├── middleware/      # Auth, error handling
 │       └── openapi/         # OpenAPI generation
+│
 ├── client/
 │   ├── api/                 # Generated types from OpenAPI
 │   ├── components/
 │   └── hooks/
+│
 └── shared/
     ├── errors/              # AppError class
-    ├── types/
-    └── utils/
+    ├── types/               # Shared TypeScript types
+    └── utils/               # Pure utility functions
 ```
 
 ## Architecture
@@ -132,7 +139,7 @@ const form = useForm({ resolver: zodResolver(createUserSchema) });
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start dev server with hot reload |
-| `npm run build` | Build for production |
+| `npm run build` | Build for production (tsup) |
 | `npm run start` | Start production server |
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:push` | Push schema to database |
@@ -178,9 +185,10 @@ export const productSchema = z.object({
   updatedAt: z.date(),
 });
 
-export const createProductSchema = z.object({
-  name: z.string().min(1).max(200),
-  price: z.number().positive(),
+export const createProductSchema = productSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export type Product = z.infer<typeof productSchema>;
@@ -233,7 +241,7 @@ open http://localhost:3000/docs
 }
 ```
 
-### Success (List)
+### Success (List with Pagination)
 
 ```json
 {
@@ -248,7 +256,7 @@ open http://localhost:3000/docs
 ```json
 {
   "success": false,
-  "error": { "code": "NOT_FOUND", "message": "User not found" }
+  "error": { "code": "NOT_FOUND", "message": "Resource not found" }
 }
 ```
 
@@ -260,15 +268,30 @@ open http://localhost:3000/docs
 | `PORT` | Server port | 3000 |
 | `HOST` | Server host | 0.0.0.0 |
 | `NODE_ENV` | Environment | development |
-| `CORS_ORIGIN` | Allowed origins | * |
 | `LOG_LEVEL` | Pino log level | info |
+| `CORS_ORIGIN` | Allowed origins | * (dev) |
+| `API_URL` | OpenAPI server URL | http://localhost:PORT |
+
+## Built-in Security
+
+- **Helmet** - Security headers (CSP, HSTS, etc.)
+- **CORS** - Configurable cross-origin policy
+- **Rate Limiting** - 100 requests/minute by default
 
 ## Production Checklist
 
 - [ ] Set `NODE_ENV=production`
-- [ ] Configure proper `CORS_ORIGIN`
-- [ ] Set up rate limiting (already included)
-- [ ] Configure authentication (JWT, etc.)
-- [ ] Set up monitoring (APM, logging)
+- [ ] Configure `CORS_ORIGIN` properly
+- [ ] Configure authentication (JWT middleware included)
+- [ ] Set up monitoring and logging
 - [ ] Configure database connection pooling
 - [ ] Set up health checks for load balancer
+
+## Tech Stack
+
+- **Fastify** ^4.28 - HTTP server
+- **Prisma** ^5.22 - Database ORM
+- **Zod** ^3.23 - Schema validation
+- **TypeScript** ^5.5 - Type safety
+- **tsup** - Production bundler
+- **Vitest** - Testing framework

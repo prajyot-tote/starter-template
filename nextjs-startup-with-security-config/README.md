@@ -1,31 +1,30 @@
-# Next.js Starter with Security
+# Next.js Starter with Configurable Security
 
-A production-ready Next.js starter with **built-in authentication and role-based access control (RBAC)**.
+A production-ready Next.js starter with **built-in authentication, RBAC, and configurable security features**.
 
 ## Features
 
-- **Authentication**: Register, login, logout with JWT sessions
+### Authentication & Authorization
+- **JWT Authentication**: Register, login, logout with secure sessions
 - **Role-Based Access Control**: Roles with permission arrays
 - **Permission System**: Fine-grained permissions with wildcard support
 - **Route Protection**: Backend middleware + frontend route guards
 - **UI Gates**: `<PermissionGate>` and `<RoleGate>` components
-- **Multi-Organization**: Support for org-scoped roles (optional)
-- **Type-Safe**: Full TypeScript support throughout
-- **Architecture Enforcement**: Dependency-cruiser prevents violations
 
-## Tech Stack
+### Configurable Security (opt-in)
+- **Rate Limiting**: Prevent brute force attacks
+- **Account Lockout**: Lock accounts after failed attempts
+- **Password Rules**: Configurable complexity requirements
+- **Audit Logging**: Track security events to database or console
+- **Session Management**: Concurrent session limits, invalidation on password change
 
-- Next.js 14 (App Router)
-- TypeScript
-- Prisma (PostgreSQL)
-- Zod validation
-- Jose (JWT)
+All security features are **disabled by default** and can be enabled via `src/config/security.ts`.
 
 ---
 
 ## Quick Start
 
-### 1. Clone and Install
+### 1. Install Dependencies
 
 ```bash
 npm install
@@ -51,7 +50,7 @@ openssl rand -base64 32
 ### 3. Setup Database
 
 ```bash
-npm run setup
+npm run setup:quick
 ```
 
 This runs: `npm install` → `db:generate` → `db:push` → `db:seed`
@@ -66,37 +65,122 @@ Visit http://localhost:3000
 
 ---
 
+## Security Configuration
+
+All security features are configured in `src/config/security.ts`:
+
+```typescript
+export const security = {
+  // Rate Limiting - prevent brute force attacks
+  rateLimit: {
+    enabled: false,
+    login: { maxAttempts: 5, windowMs: 60_000 },
+    api: { maxAttempts: 100, windowMs: 60_000 },
+  },
+
+  // Account Lockout - lock after failed attempts
+  lockout: {
+    enabled: false,
+    maxFailedAttempts: 5,
+    lockoutDurationMs: 15 * 60_000,  // 15 minutes
+    showRemainingAttempts: true,
+  },
+
+  // Password Rules - complexity requirements
+  password: {
+    minLength: 8,
+    maxLength: 128,
+    requireUppercase: false,
+    requireLowercase: false,
+    requireNumbers: false,
+    requireSymbols: false,
+  },
+
+  // Session Security
+  session: {
+    invalidateOnPasswordChange: false,
+    maxConcurrentSessions: null,  // null = unlimited
+  },
+
+  // Audit Logging - track security events
+  audit: {
+    enabled: false,
+    storage: 'database',  // or 'console'
+    events: ['LOGIN_SUCCESS', 'LOGIN_FAILED', 'LOGOUT', 'REGISTER', ...],
+    retentionDays: 90,
+  },
+};
+```
+
+### Enabling Features
+
+Edit `src/config/security.ts` and set `enabled: true` for the features you want:
+
+```typescript
+rateLimit: {
+  enabled: true,  // ← Enable rate limiting
+  // ...
+},
+```
+
+---
+
 ## Project Structure
 
 ```
 src/
 ├── app/
 │   ├── api/
-│   │   ├── auth/              # Auth endpoints (login, register, etc.)
-│   │   ├── roles/             # Role management
-│   │   └── health/
-│   ├── (auth)/                # Public auth pages
-│   │   ├── login/
-│   │   └── register/
-│   ├── (protected)/           # Protected pages
-│   │   └── dashboard/
-│   └── unauthorized/
+│   │   ├── auth/                # Auth endpoints
+│   │   │   ├── login/route.ts
+│   │   │   ├── register/route.ts
+│   │   │   ├── logout/route.ts
+│   │   │   ├── me/route.ts
+│   │   │   └── permissions/route.ts
+│   │   ├── roles/route.ts       # Role management
+│   │   └── health/route.ts
+│   ├── (auth)/                  # Public auth pages
+│   │   ├── login/page.tsx
+│   │   └── register/page.tsx
+│   ├── (protected)/             # Protected pages
+│   │   └── dashboard/page.tsx
+│   └── unauthorized/page.tsx
 │
 ├── config/
-│   └── route-permissions.ts   # ← CUSTOMIZE THIS
+│   ├── security.ts              # ← SECURITY SETTINGS
+│   ├── route-permissions.ts     # ← ROUTE PERMISSIONS
+│   └── env.ts
 │
 ├── lib/
-│   └── permissions/           # Permission system core
+│   └── permissions/             # Permission system core
+│       ├── types.ts
+│       ├── matcher.ts
+│       ├── resolver.ts
+│       └── route-matcher.ts
 │
 ├── server/
-│   ├── auth/                  # Auth middleware, JWT, passwords
+│   ├── auth/                    # Auth middleware, JWT, passwords
+│   │   ├── middleware.ts
+│   │   ├── jwt.ts
+│   │   └── password.ts
+│   ├── security/                # Security modules
+│   │   ├── rate-limit.ts
+│   │   ├── lockout.ts
+│   │   ├── password-rules.ts
+│   │   └── audit.ts
 │   ├── db/
 │   └── services/
 │
 └── client/
-    ├── components/auth/       # PermissionGate, RoleGate, RouteGuard
-    ├── hooks/                 # usePermissions, useCheckRole, etc.
-    └── lib/                   # AuthContext, permission service
+    ├── components/auth/         # Auth UI components
+    │   ├── PermissionGate.tsx
+    │   ├── RoleGate.tsx
+    │   └── RouteGuard.tsx
+    ├── hooks/
+    │   └── use-permissions.ts
+    └── lib/
+        ├── auth-context.tsx
+        └── permission-service.ts
 ```
 
 ---
@@ -252,27 +336,23 @@ Examples:
 
 ---
 
-## Adding Permissions & Roles
-
-Edit `prisma/seed.ts` and run:
-
-```bash
-npm run db:seed
-```
-
----
-
-## Scripts
+## Commands
 
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start development server |
-| `npm run setup` | Full setup (install, generate, push, seed) |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run setup:quick` | Full setup (install, generate, push, seed) |
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:push` | Push schema to database |
 | `npm run db:seed` | Seed roles and permissions |
 | `npm run db:studio` | Open Prisma Studio |
-| `npm run validate` | Run all checks |
+| `npm run db:reset` | Reset database |
+| `npm run lint` | ESLint validation |
+| `npm run typecheck` | TypeScript validation |
+| `npm run arch:validate` | Architecture validation |
+| `npm run validate` | All validations + tests |
 
 ---
 
@@ -298,11 +378,36 @@ Frontend:
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string (required) |
-| `JWT_SECRET` | JWT signing secret, min 32 chars (required) |
-| `NODE_ENV` | development / production |
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `JWT_SECRET` | JWT signing secret (min 32 chars) | Yes |
+| `NODE_ENV` | development / production | No |
+| `NEXT_PUBLIC_API_URL` | API base URL | No |
+
+---
+
+## Tech Stack
+
+- **Next.js** ^14.2 - React framework with App Router
+- **Prisma** ^5.22 - Database ORM
+- **Jose** ^5.2 - JWT handling
+- **Zod** ^3.23 - Schema validation
+- **TypeScript** ^5.5 - Type safety
+- **Vitest** ^1.6 - Testing framework
+- **dependency-cruiser** ^16 - Architecture enforcement
+
+---
+
+## Production Checklist
+
+- [ ] Set `NODE_ENV=production`
+- [ ] Generate and set a secure `JWT_SECRET`
+- [ ] Enable security features in `src/config/security.ts`
+- [ ] Configure proper CORS if needed
+- [ ] Set up database connection pooling
+- [ ] Set up monitoring and logging
+- [ ] Deploy to Vercel, Railway, or similar
 
 ---
 
