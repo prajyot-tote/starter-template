@@ -5,13 +5,7 @@
 // Prefer deriving types from Zod schemas when possible
 
 // Re-export schema types for convenience
-export type {
-  User,
-  UserResponse,
-  CreateUser,
-  UpdateUser,
-  Role,
-} from '@/schemas';
+// export type { YourType } from '@/schemas';
 
 // ============================================
 // UTILITY TYPES

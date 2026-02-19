@@ -1,11 +1,22 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-import type { User } from '@/schemas';
+// ============================================
+// AUTH MIDDLEWARE TEMPLATE
+// ============================================
+// Customize this for your authentication needs
+// ============================================
+
+// Define your user type here or import from @/schemas
+// import type { User } from '@/schemas';
+interface AuthUser {
+  id: string;
+  role: string;
+}
 
 // Extend Fastify request type to include user
 declare module 'fastify' {
   interface FastifyRequest {
-    user?: User;
+    user?: AuthUser;
   }
 }
 
@@ -60,8 +71,9 @@ export async function authenticate(
  * Authorization middleware factory
  *
  * Creates middleware that checks if user has required role.
+ * Update the role type to match your schema.
  */
-export function requireRole(roles: Array<'USER' | 'ADMIN'>) {
+export function requireRole(roles: string[]) {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     if (!request.user) {
       return reply.status(401).send({

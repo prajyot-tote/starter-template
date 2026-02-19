@@ -1,5 +1,3 @@
-import { UserList } from '@/client/components/UserList';
-
 export default function Home() {
   return (
     <main className="container" style={{ padding: '2rem 1rem' }}>
@@ -21,62 +19,20 @@ export default function Home() {
             </code>
             {' '}— Health check
           </li>
-          <li style={{ marginBottom: '0.5rem' }}>
-            <code style={{
-              background: 'var(--muted)',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '4px'
-            }}>
-              GET /api/users
-            </code>
-            {' '}— List users
-          </li>
-          <li style={{ marginBottom: '0.5rem' }}>
-            <code style={{
-              background: 'var(--muted)',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '4px'
-            }}>
-              POST /api/users
-            </code>
-            {' '}— Create user
-          </li>
-          <li style={{ marginBottom: '0.5rem' }}>
-            <code style={{
-              background: 'var(--muted)',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '4px'
-            }}>
-              GET /api/users/:id
-            </code>
-            {' '}— Get user by ID
-          </li>
-          <li style={{ marginBottom: '0.5rem' }}>
-            <code style={{
-              background: 'var(--muted)',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '4px'
-            }}>
-              PUT /api/users/:id
-            </code>
-            {' '}— Update user
-          </li>
-          <li style={{ marginBottom: '0.5rem' }}>
-            <code style={{
-              background: 'var(--muted)',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '4px'
-            }}>
-              DELETE /api/users/:id
-            </code>
-            {' '}— Delete user
-          </li>
         </ul>
+        <p className="text-muted" style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+          Add your API routes in <code>src/app/api/</code>
+        </p>
       </section>
 
       <section>
-        <h2 style={{ marginBottom: '1rem' }}>Users</h2>
-        <UserList />
+        <h2 style={{ marginBottom: '1rem' }}>Getting Started</h2>
+        <ol style={{ paddingLeft: '1.5rem' }}>
+          <li style={{ marginBottom: '0.5rem' }}>Define your Prisma models in <code>prisma/schema.prisma</code></li>
+          <li style={{ marginBottom: '0.5rem' }}>Create Zod schemas in <code>src/schemas/</code></li>
+          <li style={{ marginBottom: '0.5rem' }}>Add services in <code>src/server/services/</code></li>
+          <li style={{ marginBottom: '0.5rem' }}>Create API routes in <code>src/app/api/</code></li>
+        </ol>
       </section>
     </main>
   );

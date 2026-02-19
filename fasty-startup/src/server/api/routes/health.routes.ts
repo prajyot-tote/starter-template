@@ -1,8 +1,10 @@
-import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { db } from '@/server/db';
+
 import { registry } from '../openapi/registry';
+
+import type { FastifyInstance } from 'fastify';
 
 // ============================================
 // OPENAPI SCHEMA REGISTRATION
@@ -65,7 +67,7 @@ export async function healthRoutes(app: FastifyInstance): Promise<void> {
     const response = {
       status,
       timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || '1.0.0',
+      version: process.env['npm_package_version'] ?? '1.0.0',
       checks: {
         database: isDatabaseConnected ? 'connected' : 'disconnected',
       },

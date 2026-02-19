@@ -1,7 +1,8 @@
-import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 import { ZodError } from 'zod';
 
 import { AppError } from '@/shared/errors';
+
+import type { FastifyError, FastifyReply, FastifyRequest } from 'fastify';
 
 /**
  * Global error handler for Fastify
@@ -18,7 +19,7 @@ export function errorHandler(
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {
-    reply.status(400).send({
+    void reply.status(400).send({
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
@@ -34,7 +35,7 @@ export function errorHandler(
 
   // Handle custom application errors
   if (error instanceof AppError) {
-    reply.status(error.statusCode).send({
+    void reply.status(error.statusCode).send({
       success: false,
       error: {
         code: error.code,
@@ -46,7 +47,7 @@ export function errorHandler(
 
   // Handle Fastify validation errors
   if (error.validation) {
-    reply.status(400).send({
+    void reply.status(400).send({
       success: false,
       error: {
         code: 'VALIDATION_ERROR',
@@ -59,7 +60,7 @@ export function errorHandler(
 
   // Handle known HTTP errors
   if (error.statusCode && error.statusCode < 500) {
-    reply.status(error.statusCode).send({
+    void reply.status(error.statusCode).send({
       success: false,
       error: {
         code: 'REQUEST_ERROR',
@@ -70,8 +71,8 @@ export function errorHandler(
   }
 
   // Handle unknown errors (500)
-  const isProduction = process.env.NODE_ENV === 'production';
-  reply.status(500).send({
+  const isProduction = process.env['NODE_ENV'] === 'production';
+  void reply.status(500).send({
     success: false,
     error: {
       code: 'INTERNAL_ERROR',

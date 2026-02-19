@@ -2,31 +2,35 @@
 // SERVER ENTRY POINT
 // ============================================
 
-import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import Fastify from 'fastify';
 
-import { db } from '@/server/db';
-import { registerRoutes } from '@/server/api/routes';
 import { errorHandler } from '@/server/api/middleware';
 import { generateOpenAPIDocument } from '@/server/api/openapi/registry';
+import { registerRoutes } from '@/server/api/routes';
+import { db } from '@/server/db';
 
 // Import routes to register OpenAPI schemas
-import '@/server/api/routes/user.routes';
 import '@/server/api/routes/health.routes';
+// Add your route imports here:
+// import '@/server/api/routes/product.routes';
 
 async function main(): Promise<void> {
+  const isDev = process.env['NODE_ENV'] === 'development';
+
   const app = Fastify({
-    logger: {
-      level: process.env.LOG_LEVEL || 'info',
-      transport:
-        process.env.NODE_ENV === 'development'
-          ? { target: 'pino-pretty', options: { colorize: true } }
-          : undefined,
-    },
+    logger: isDev
+      ? {
+          level: process.env['LOG_LEVEL'] ?? 'info',
+          transport: { target: 'pino-pretty', options: { colorize: true } },
+        }
+      : {
+          level: process.env['LOG_LEVEL'] ?? 'info',
+        },
   });
 
   // ============================================
@@ -38,7 +42,7 @@ async function main(): Promise<void> {
 
   // CORS
   await app.register(cors, {
-    origin: process.env.CORS_ORIGIN || true,
+    origin: process.env['CORS_ORIGIN'] ?? true,
     credentials: true,
   });
 
@@ -54,12 +58,14 @@ async function main(): Promise<void> {
 
   const openApiSpec = generateOpenAPIDocument();
 
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   await app.register(swagger, {
     mode: 'static',
     specification: {
-      document: openApiSpec as Record<string, unknown>,
+      document: openApiSpec,
     },
-  });
+  } as any);
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   await app.register(swaggerUi, {
     routePrefix: '/docs',
@@ -73,13 +79,15 @@ async function main(): Promise<void> {
   // ERROR HANDLING
   // ============================================
 
-  app.setErrorHandler(errorHandler);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.setErrorHandler(errorHandler as any);
 
   // ============================================
   // ROUTES
   // ============================================
 
-  await registerRoutes(app);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await registerRoutes(app as any);
 
   // ============================================
   // DATABASE & START
@@ -89,12 +97,12 @@ async function main(): Promise<void> {
     await db.$connect();
     app.log.info('✅ Database connected');
   } catch (error) {
-    app.log.error('❌ Database connection failed:', error);
+    app.log.error({ err: error }, '❌ Database connection failed');
     process.exit(1);
   }
 
-  const port = Number(process.env.PORT) || 3000;
-  const host = process.env.HOST || '0.0.0.0';
+  const port = Number(process.env['PORT']) || 3000;
+  const host = process.env['HOST'] ?? '0.0.0.0';
 
   try {
     await app.listen({ port, host });
@@ -106,14 +114,15 @@ async function main(): Promise<void> {
   }
 
   // Graceful shutdown
-  const signals = ['SIGINT', 'SIGTERM'];
-  for (const signal of signals) {
-    process.on(signal, async () => {
-      app.log.info(`Received ${signal}, shutting down...`);
-      await app.close();
-      await db.$disconnect();
-      process.exit(0);
-    });
+  const shutdown = async (signal: string): Promise<void> => {
+    app.log.info(`Received ${signal}, shutting down...`);
+    await app.close();
+    await db.$disconnect();
+    process.exit(0);
+  };
+
+  for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.on(signal, () => void shutdown(signal));
   }
 }
 

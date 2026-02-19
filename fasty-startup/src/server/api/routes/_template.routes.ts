@@ -15,7 +15,7 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import { z } from 'zod';
+// import { z } from 'zod';
 
 // Import your schemas
 // import { entitySchema, createEntitySchema, updateEntitySchema } from '@/schemas';
@@ -23,13 +23,16 @@ import { z } from 'zod';
 // Import your service
 // import { entityService } from '@/server/services';
 
-import {
-  registry,
-  successResponse,
-  errorResponseSchema,
-  paginationQuerySchema,
-} from '../openapi/registry';
-import { authenticate } from '../middleware';
+// Import middleware
+// import { authenticate } from '../middleware';
+
+// Import OpenAPI helpers
+// import {
+//   registry,
+//   successResponse,
+//   errorResponseSchema,
+//   paginationQuerySchema,
+// } from '../openapi/registry';
 
 // ============================================
 // OPENAPI SCHEMA REGISTRATION
@@ -64,7 +67,7 @@ import { authenticate } from '../middleware';
 // ROUTE HANDLERS
 // ============================================
 
-export async function templateRoutes(app: FastifyInstance): Promise<void> {
+export async function templateRoutes(_app: FastifyInstance): Promise<void> {
   // Example: GET /entities
   // app.get('/entities', async (request, reply) => {
   //   const query = paginationQuerySchema.parse(request.query);

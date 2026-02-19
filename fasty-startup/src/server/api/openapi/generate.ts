@@ -12,8 +12,7 @@ import { writeFileSync } from 'fs';
 import { resolve } from 'path';
 
 // Import all route registrations to populate the registry
-import '../routes/user.routes';
-// Add more route imports here as you create them:
+// Add your route imports here:
 // import '../routes/product.routes';
 // import '../routes/order.routes';
 

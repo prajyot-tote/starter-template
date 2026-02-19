@@ -10,8 +10,6 @@
 // 3. Derive TypeScript types using z.infer<>
 // ============================================
 
-export * from './user.schema';
-
 // Add your domain schemas here:
 // export * from './product.schema';
 // export * from './order.schema';

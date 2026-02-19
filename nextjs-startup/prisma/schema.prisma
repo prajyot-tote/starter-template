@@ -2,7 +2,6 @@
 // PRISMA SCHEMA
 // ============================================
 // This file is DYNAMIC - you MUST customize it for your project
-// Only the User model below is templatable (most apps need users)
 //
 // After changes, run:
 //   npm run db:generate   (regenerate Prisma client)
@@ -19,30 +18,24 @@ datasource db {
 }
 
 // ============================================
-// TEMPLATABLE: Most apps need this
-// ============================================
-
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  role      Role     @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Add your relations here:
-  // posts     Post[]
-  // orders    Order[]
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-
-// ============================================
 // YOUR DOMAIN MODELS GO HERE
 // ============================================
+//
+// Example User model:
+//
+// model User {
+//   id        String   @id @default(cuid())
+//   email     String   @unique
+//   name      String?
+//   role      Role     @default(USER)
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }
+//
+// enum Role {
+//   USER
+//   ADMIN
+// }
 //
 // Example for e-commerce:
 //
