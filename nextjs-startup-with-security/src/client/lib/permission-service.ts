@@ -35,21 +35,39 @@ export async function fetchAndStorePermissions(
     }
 
     const json = (await response.json()) as {
-      data?: { token: string; roles: string[]; permissions: string[] };
+      data?: { token: string };
     };
-    const { token, roles, permissions } = json.data ?? {
-      token: '',
-      roles: [],
-      permissions: [],
-    };
+    const token = json.data?.token;
 
-    if (typeof window !== 'undefined' && token) {
+    if (!token) {
+      return { roles: [], permissions: [] };
+    }
+
+    if (typeof window !== 'undefined') {
       localStorage.setItem(PERMISSION_TOKEN_KEY, token);
     }
 
-    return { roles, permissions };
+    // Decode roles/permissions from the token
+    const payload = decodeTokenPayload(token);
+    return {
+      roles: payload?.roles ?? [],
+      permissions: payload?.permissions ?? [],
+    };
   } catch {
     return { roles: [], permissions: [] };
+  }
+}
+
+/**
+ * Decode JWT payload without verification (for client-side use)
+ */
+function decodeTokenPayload(token: string): PermissionTokenPayload | null {
+  try {
+    const [, payloadB64] = token.split('.');
+    if (!payloadB64) return null;
+    return JSON.parse(atob(payloadB64)) as PermissionTokenPayload;
+  } catch {
+    return null;
   }
 }
 
@@ -57,28 +75,24 @@ export async function fetchAndStorePermissions(
  * Get decoded payload from cached JWT (synchronous)
  */
 export function getPermissionPayload(): PermissionTokenPayload | null {
-  if (typeof window === 'undefined') {return null;}
+  if (typeof window === 'undefined') return null;
 
   const token = localStorage.getItem(PERMISSION_TOKEN_KEY);
-  if (!token) {return null;}
+  if (!token) return null;
 
-  try {
-    const [, payloadB64] = token.split('.');
-    if (!payloadB64) {return null;}
-
-    const payload = JSON.parse(atob(payloadB64)) as PermissionTokenPayload;
-
-    // Check expiration
-    if (payload.exp && payload.exp < Date.now() / 1000) {
-      localStorage.removeItem(PERMISSION_TOKEN_KEY);
-      return null;
-    }
-
-    return payload;
-  } catch {
+  const payload = decodeTokenPayload(token);
+  if (!payload) {
     localStorage.removeItem(PERMISSION_TOKEN_KEY);
     return null;
   }
+
+  // Check expiration
+  if (payload.exp && payload.exp < Date.now() / 1000) {
+    localStorage.removeItem(PERMISSION_TOKEN_KEY);
+    return null;
+  }
+
+  return payload;
 }
 
 /**

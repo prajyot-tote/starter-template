@@ -13,7 +13,7 @@ async function handler(request: AuthenticatedRequest): Promise<NextResponse> {
   // Resolve all permissions
   const resolved = await resolveUserPermissions(auth.userId, auth.organizationId);
 
-  // Generate permission JWT
+  // Generate permission JWT (contains roles and permissions)
   const token = await createPermissionToken(
     auth.userId,
     resolved.roles,
@@ -23,11 +23,7 @@ async function handler(request: AuthenticatedRequest): Promise<NextResponse> {
 
   return NextResponse.json({
     success: true,
-    data: {
-      token,
-      roles: resolved.roles,
-      permissions: resolved.permissions,
-    },
+    data: { token },
   });
 }
 
