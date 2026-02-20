@@ -81,3 +81,13 @@ a:hover {
 .text-success {
   color: var(--success);
 }
+
+/* ============================================
+   ANIMATIONS (Framework-agnostic)
+   ============================================ */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

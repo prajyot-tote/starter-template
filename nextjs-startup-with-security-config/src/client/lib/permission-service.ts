@@ -64,7 +64,9 @@ export async function fetchAndStorePermissions(
 function decodeTokenPayload(token: string): PermissionTokenPayload | null {
   try {
     const [, payloadB64] = token.split('.');
-    if (!payloadB64) return null;
+    if (!payloadB64) {
+      return null;
+    }
     return JSON.parse(atob(payloadB64)) as PermissionTokenPayload;
   } catch {
     return null;
@@ -75,10 +77,14 @@ function decodeTokenPayload(token: string): PermissionTokenPayload | null {
  * Get decoded payload from cached JWT (synchronous)
  */
 export function getPermissionPayload(): PermissionTokenPayload | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') {
+    return null;
+  }
 
   const token = localStorage.getItem(PERMISSION_TOKEN_KEY);
-  if (!token) return null;
+  if (!token) {
+    return null;
+  }
 
   const payload = decodeTokenPayload(token);
   if (!payload) {

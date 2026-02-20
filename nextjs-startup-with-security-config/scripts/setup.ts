@@ -129,6 +129,16 @@ function generateGlobalsCss(theme: ThemeConfig): string {
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* ============================================
+   ANIMATIONS (Framework-agnostic)
+   ============================================ */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 `;
 }
 

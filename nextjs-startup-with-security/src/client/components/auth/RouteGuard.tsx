@@ -8,6 +8,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 
+import { FullPageSpinner } from '@/client/components/ui/Spinner';
 import { usePermissions } from '@/client/hooks/use-permissions';
 import { useAuth } from '@/client/lib/auth-context';
 import { PAGE_PERMISSIONS } from '@/config/route-permissions';
@@ -170,11 +171,7 @@ export function RouteGuard({
 }
 
 function DefaultLoading() {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
-    </div>
-  );
+  return <FullPageSpinner />;
 }
 
 /**
