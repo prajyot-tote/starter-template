@@ -275,6 +275,8 @@ These are enforced by tooling. Violations will fail validation.
 
 | Command | Purpose |
 |---------|---------|
+| `npm run setup` | Interactive setup wizard (UI framework, security, database) |
+| `npm run setup:quick` | Quick setup (install, generate, push, seed) |
 | `npx prisma validate` | Validate Prisma schema |
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:push` | Push schema to database |

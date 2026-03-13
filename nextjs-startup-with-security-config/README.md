@@ -24,38 +24,32 @@ All security features are **disabled by default** and can be enabled via `src/co
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Option A: Interactive Setup (recommended)
 
 ```bash
 npm install
+npm run setup
 ```
 
-### 2. Configure Environment
+The setup wizard will guide you through:
+1. Environment configuration (`.env.local`, JWT secret)
+2. UI framework preset selection (8 options)
+3. Theme customization (color, radius, dark mode)
+4. Security configuration (rate limiting, lockout, audit logging)
+5. Database setup (Prisma generate, push, seed)
+
+### Option B: Quick Setup (skip wizard)
 
 ```bash
+# Set up environment manually
 cp .env.example .env.local
-```
+# Edit .env.local with DATABASE_URL and JWT_SECRET
 
-Edit `.env.local`:
-```
-DATABASE_URL="postgresql://user:password@localhost:5432/mydb"
-JWT_SECRET="your-secret-key-min-32-chars-long"
-```
-
-Generate a secure JWT secret:
-```bash
-openssl rand -base64 32
-```
-
-### 3. Setup Database
-
-```bash
+# Install and set up database
 npm run setup:quick
 ```
 
-This runs: `npm install` → `db:generate` → `db:push` → `db:seed`
-
-### 4. Start Development
+### Start Development
 
 ```bash
 npm run dev
@@ -122,6 +116,31 @@ rateLimit: {
   // ...
 },
 ```
+
+---
+
+## UI Framework Presets
+
+The setup wizard (`npm run setup`) lets you choose from 8 UI framework presets. All build on top of Tailwind CSS with CSS variables for theming.
+
+| Preset | What it adds | Dependencies installed |
+|--------|-------------|----------------------|
+| **Tailwind only** | Utility classes, no component library | None |
+| **Tailwind + shadcn/ui** | Component library with Radix primitives | None (components added via `npx shadcn@latest add`) |
+| **Tailwind + DaisyUI** | Themed Tailwind plugin components | `daisyui` |
+| **Tailwind + Flowbite** | Tailwind plugin + React components | `flowbite`, `flowbite-react` |
+| **Tailwind + Headless UI** | Unstyled accessible components | `@headlessui/react` |
+| **Tailwind + Radix UI** | Unstyled accessible primitives | `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-tooltip`, `@radix-ui/react-popover` |
+| **Tailwind + Preline UI** | Tailwind plugin, interactive components | `preline@^2` |
+| **Tailwind + NextUI** | Tailwind-based with Framer Motion | `@nextui-org/react`, `@nextui-org/theme`, `framer-motion` |
+
+The wizard generates:
+- `tailwind.config.ts` — with framework-specific plugins and content paths
+- `src/app/globals.css` — with CSS variables for your chosen color/radius
+- `components.json` — shadcn/ui config (shadcn preset only)
+- `src/app/providers.tsx` — updated with `NextUIProvider` (NextUI preset only)
+
+To re-run the UI setup: `npm run setup`
 
 ---
 
@@ -343,7 +362,8 @@ Examples:
 | `npm run dev` | Start development server |
 | `npm run build` | Build for production |
 | `npm run start` | Start production server |
-| `npm run setup:quick` | Full setup (install, generate, push, seed) |
+| `npm run setup` | Interactive setup wizard (UI, security, database) |
+| `npm run setup:quick` | Quick setup (install, generate, push, seed) |
 | `npm run db:generate` | Generate Prisma client |
 | `npm run db:push` | Push schema to database |
 | `npm run db:seed` | Seed roles and permissions |
@@ -390,6 +410,7 @@ Frontend:
 ## Tech Stack
 
 - **Next.js** ^14.2 - React framework with App Router
+- **Tailwind CSS** ^3 - Utility-first CSS framework
 - **Prisma** ^5.22 - Database ORM
 - **Jose** ^5.2 - JWT handling
 - **Zod** ^3.23 - Schema validation

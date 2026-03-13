@@ -36,7 +36,7 @@ const confirm = async (prompt: string, defaultValue = true): Promise<boolean> =>
 // ============================================
 
 interface ThemeConfig {
-  preset: 'tailwind' | 'shadcn';
+  preset: 'tailwind' | 'shadcn' | 'daisyui' | 'flowbite' | 'headlessui' | 'radixui' | 'preline' | 'nextui';
   primaryColor: 'blue' | 'green' | 'violet' | 'orange' | 'red';
   radius: 'none' | 'small' | 'medium' | 'large';
   darkMode: 'system' | 'light' | 'dark';
@@ -167,6 +167,175 @@ function generateComponentsJson(theme: ThemeConfig): string {
 }
 
 // ============================================
+// TAILWIND CONFIG GENERATION
+// ============================================
+
+function generateTailwindConfig(preset: ThemeConfig['preset']): string {
+  const baseContent = `    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/client/**/*.{js,ts,jsx,tsx,mdx}',`;
+
+  // Additional content paths per preset
+  const extraContent: Record<string, string> = {
+    flowbite: `\n    './node_modules/flowbite/**/*.js',`,
+    preline: `\n    './node_modules/preline/dist/*.js',`,
+    nextui: `\n    './node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}',`,
+  };
+
+  // Plugin imports per preset
+  // DaisyUI and Preline don't ship type declarations, so we use require()
+  // Flowbite's subpath export also works better with require()
+  // NextUI has proper ESM types
+  const pluginImports: Record<string, string> = {
+    daisyui: `\n// eslint-disable-next-line @typescript-eslint/no-require-imports\nconst daisyui = require('daisyui');\n`,
+    flowbite: `\n// eslint-disable-next-line @typescript-eslint/no-require-imports\nconst flowbite = require('flowbite/plugin');\n`,
+    preline: `\n// eslint-disable-next-line @typescript-eslint/no-require-imports\nconst preline = require('preline/plugin');\n`,
+    nextui: `\nimport { nextui } from '@nextui-org/theme';\n`,
+  };
+
+  // Plugin entries per preset
+  const pluginEntries: Record<string, string> = {
+    daisyui: 'daisyui',
+    flowbite: 'flowbite',
+    preline: 'preline',
+    nextui: 'nextui()',
+  };
+
+  const importLine = pluginImports[preset] ?? '';
+  const contentPaths = baseContent + (extraContent[preset] ?? '');
+  const pluginEntry = pluginEntries[preset];
+  const pluginsArray = pluginEntry ? `[${pluginEntry}]` : '[]';
+
+  return `import type { Config } from 'tailwindcss';
+${importLine}
+const config: Config = {
+  darkMode: 'class',
+  content: [
+${contentPaths}
+  ],
+  theme: {
+    extend: {
+      colors: {
+        border: 'hsl(var(--border))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
+    },
+  },
+  plugins: ${pluginsArray},
+};
+
+export default config;
+`;
+}
+
+// ============================================
+// DEPENDENCY INSTALLATION
+// ============================================
+
+const PRESET_DEPENDENCIES: Partial<Record<ThemeConfig['preset'], string[]>> = {
+  daisyui: ['daisyui'],
+  flowbite: ['flowbite', 'flowbite-react'],
+  headlessui: ['@headlessui/react'],
+  radixui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tooltip', '@radix-ui/react-popover'],
+  preline: ['preline@^2'],
+  nextui: ['@nextui-org/react', '@nextui-org/theme', 'framer-motion'],
+};
+
+async function installDependencies(preset: ThemeConfig['preset']): Promise<void> {
+  const deps = PRESET_DEPENDENCIES[preset];
+  if (!deps || deps.length === 0) return;
+
+  const { execSync } = await import('child_process');
+  const packages = deps.join(' ');
+  console.log(`Installing ${preset} dependencies: ${packages}...`);
+  execSync(`npm install ${packages}`, { stdio: 'inherit' });
+  console.log(`✓ Installed ${preset} dependencies\n`);
+}
+
+// ============================================
+// NEXTUI PROVIDER SETUP
+// ============================================
+
+function generateProvidersWithNextUI(): string {
+  return `'use client';
+
+// ============================================
+// APP PROVIDERS
+// ============================================
+// Wrap the app with all necessary context providers
+
+import { type ReactNode } from 'react';
+
+import { NextUIProvider } from '@nextui-org/react';
+import { AuthProvider } from '@/client/lib/auth-context';
+
+interface ProvidersProps {
+  children: ReactNode;
+}
+
+export function Providers({ children }: ProvidersProps) {
+  return (
+    <NextUIProvider>
+      <AuthProvider>{children}</AuthProvider>
+    </NextUIProvider>
+  );
+}
+`;
+}
+
+// ============================================
+// PRESET DISPLAY NAMES
+// ============================================
+
+const PRESET_DISPLAY_NAMES: Record<ThemeConfig['preset'], string> = {
+  tailwind: 'Tailwind only',
+  shadcn: 'Tailwind + shadcn/ui',
+  daisyui: 'Tailwind + DaisyUI',
+  flowbite: 'Tailwind + Flowbite',
+  headlessui: 'Tailwind + Headless UI',
+  radixui: 'Tailwind + Radix UI',
+  preline: 'Tailwind + Preline UI',
+  nextui: 'Tailwind + NextUI',
+};
+
+// ============================================
 // SECURITY CONFIGURATION
 // ============================================
 
@@ -263,8 +432,15 @@ async function main(): Promise<void> {
   const presetIndex = await select('Select UI preset:', [
     'Tailwind only (minimal, just utility classes)',
     'Tailwind + shadcn/ui (component library with Radix primitives)',
+    'Tailwind + DaisyUI (Tailwind plugin, themed components)',
+    'Tailwind + Flowbite (Tailwind plugin + React components)',
+    'Tailwind + Headless UI (unstyled accessible components by Tailwind Labs)',
+    'Tailwind + Radix UI (unstyled accessible primitives)',
+    'Tailwind + Preline UI (Tailwind plugin, interactive components)',
+    'Tailwind + NextUI (Tailwind-based, with Framer Motion)',
   ]);
-  themeConfig.preset = presetIndex === 0 ? 'tailwind' : 'shadcn';
+  const presetOptions = ['tailwind', 'shadcn', 'daisyui', 'flowbite', 'headlessui', 'radixui', 'preline', 'nextui'] as const;
+  themeConfig.preset = presetOptions[presetIndex] ?? 'tailwind';
   console.log();
 
   const colorIndex = await select('Primary color:', [
@@ -302,6 +478,11 @@ async function main(): Promise<void> {
   fs.writeFileSync(globalsCssPath, generateGlobalsCss(themeConfig));
   console.log('✓ Generated src/app/globals.css\n');
 
+  // Generate tailwind.config.ts based on preset
+  const tailwindConfigPath = path.join(process.cwd(), 'tailwind.config.ts');
+  fs.writeFileSync(tailwindConfigPath, generateTailwindConfig(themeConfig.preset));
+  console.log('✓ Generated tailwind.config.ts\n');
+
   // If shadcn preset, generate components.json
   if (themeConfig.preset === 'shadcn') {
     const componentsJsonPath = path.join(process.cwd(), 'components.json');
@@ -309,6 +490,16 @@ async function main(): Promise<void> {
     console.log('✓ Generated components.json (shadcn/ui config)\n');
     console.log('  To add components, run: npx shadcn@latest add button\n');
   }
+
+  // If NextUI preset, update providers.tsx
+  if (themeConfig.preset === 'nextui') {
+    const providersPath = path.join(process.cwd(), 'src/app/providers.tsx');
+    fs.writeFileSync(providersPath, generateProvidersWithNextUI());
+    console.log('✓ Updated src/app/providers.tsx with NextUIProvider\n');
+  }
+
+  // Install framework-specific dependencies
+  await installDependencies(themeConfig.preset);
 
   // ============================================
   // SECURITY CONFIGURATION
@@ -535,7 +726,7 @@ export type AuditEvent = (typeof security.audit.events)[number];
   console.log('✓ Setup complete!\n');
 
   console.log('UI Framework:');
-  console.log(`  • Preset: ${themeConfig.preset === 'shadcn' ? 'Tailwind + shadcn/ui' : 'Tailwind only'}`);
+  console.log(`  • Preset: ${PRESET_DISPLAY_NAMES[themeConfig.preset]}`);
   console.log(`  • Primary color: ${themeConfig.primaryColor}`);
   console.log(`  • Border radius: ${themeConfig.radius}`);
   console.log(`  • Dark mode: ${themeConfig.darkMode}`);
@@ -548,12 +739,30 @@ export type AuditEvent = (typeof security.audit.events)[number];
   console.log(`  • Session invalidation: ${config.session.invalidateOnPasswordChange ? '✓' : '✗'}`);
   console.log(`  • Audit logging: ${config.audit.enabled ? '✓ (' + config.audit.storage + ')' : '✗'}`);
 
-  if (themeConfig.preset === 'shadcn') {
-    console.log('\nNext steps:');
-    console.log('  1. Run: npm run dev');
-    console.log('  2. Add components: npx shadcn@latest add button card input');
-  } else {
-    console.log('\nRun: npm run dev');
+  console.log('\nNext steps:');
+  console.log('  1. Run: npm run dev');
+  switch (themeConfig.preset) {
+    case 'shadcn':
+      console.log('  2. Add components: npx shadcn@latest add button card input');
+      break;
+    case 'daisyui':
+      console.log('  2. Use DaisyUI classes: <button class="btn btn-primary">Click</button>');
+      break;
+    case 'flowbite':
+      console.log("  2. Import components: import { Button } from 'flowbite-react'");
+      break;
+    case 'headlessui':
+      console.log("  2. Import components: import { Dialog, Menu } from '@headlessui/react'");
+      break;
+    case 'radixui':
+      console.log("  2. Import primitives: import * as Dialog from '@radix-ui/react-dialog'");
+      break;
+    case 'preline':
+      console.log('  2. Use Preline classes: <button class="btn btn-primary">Click</button>');
+      break;
+    case 'nextui':
+      console.log("  2. Import components: import { Button } from '@nextui-org/react'");
+      break;
   }
   console.log();
 
