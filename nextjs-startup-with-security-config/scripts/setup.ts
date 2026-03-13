@@ -6,30 +6,11 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import * as readline from 'readline';
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-const question = (prompt: string): Promise<string> =>
-  new Promise((resolve) => rl.question(prompt, resolve));
-
-const select = async (prompt: string, options: string[]): Promise<number> => {
-  console.log(prompt);
-  options.forEach((opt, i) => console.log(`  ${i + 1}) ${opt}`));
-  const answer = await question('Enter number: ');
-  const index = parseInt(answer, 10) - 1;
-  return index >= 0 && index < options.length ? index : 0;
-};
-
-const confirm = async (prompt: string, defaultValue = true): Promise<boolean> => {
-  const suffix = defaultValue ? '[Y/n]' : '[y/N]';
-  const answer = await question(`${prompt} ${suffix}: `);
-  if (answer.trim() === '') return defaultValue;
-  return answer.toLowerCase().startsWith('y');
-};
+import {
+  select as inquirerSelect,
+  confirm as inquirerConfirm,
+  input as inquirerInput,
+} from '@inquirer/prompts';
 
 // ============================================
 // THEME CONFIGURATION
@@ -389,7 +370,7 @@ async function main(): Promise<void> {
       fs.copyFileSync(envExamplePath, envPath);
       console.log('✓ Created .env.local\n');
 
-      const dbUrl = await question('Database URL (press Enter for default): ');
+      const dbUrl = await inquirerInput({ message: 'Database URL (press Enter for default):' });
       if (dbUrl.trim()) {
         let envContent = fs.readFileSync(envPath, 'utf-8');
         envContent = envContent.replace(
@@ -429,49 +410,49 @@ async function main(): Promise<void> {
     darkMode: 'system',
   };
 
-  const presetIndex = await select('Select UI preset:', [
-    'Tailwind only (minimal, just utility classes)',
-    'Tailwind + shadcn/ui (component library with Radix primitives)',
-    'Tailwind + DaisyUI (Tailwind plugin, themed components)',
-    'Tailwind + Flowbite (Tailwind plugin + React components)',
-    'Tailwind + Headless UI (unstyled accessible components by Tailwind Labs)',
-    'Tailwind + Radix UI (unstyled accessible primitives)',
-    'Tailwind + Preline UI (Tailwind plugin, interactive components)',
-    'Tailwind + NextUI (Tailwind-based, with Framer Motion)',
-  ]);
-  const presetOptions = ['tailwind', 'shadcn', 'daisyui', 'flowbite', 'headlessui', 'radixui', 'preline', 'nextui'] as const;
-  themeConfig.preset = presetOptions[presetIndex] ?? 'tailwind';
-  console.log();
+  themeConfig.preset = await inquirerSelect({
+    message: 'Select UI preset:',
+    choices: [
+      { value: 'tailwind' as const, name: 'Tailwind only (minimal, just utility classes)' },
+      { value: 'shadcn' as const, name: 'Tailwind + shadcn/ui (component library with Radix primitives)' },
+      { value: 'daisyui' as const, name: 'Tailwind + DaisyUI (Tailwind plugin, themed components)' },
+      { value: 'flowbite' as const, name: 'Tailwind + Flowbite (Tailwind plugin + React components)' },
+      { value: 'headlessui' as const, name: 'Tailwind + Headless UI (unstyled accessible components by Tailwind Labs)' },
+      { value: 'radixui' as const, name: 'Tailwind + Radix UI (unstyled accessible primitives)' },
+      { value: 'preline' as const, name: 'Tailwind + Preline UI (Tailwind plugin, interactive components)' },
+      { value: 'nextui' as const, name: 'Tailwind + NextUI (Tailwind-based, with Framer Motion)' },
+    ],
+  });
 
-  const colorIndex = await select('Primary color:', [
-    'Blue (default)',
-    'Green',
-    'Violet',
-    'Orange',
-    'Red',
-  ]);
-  const colorOptions = ['blue', 'green', 'violet', 'orange', 'red'] as const;
-  themeConfig.primaryColor = colorOptions[colorIndex] ?? 'blue';
-  console.log();
+  themeConfig.primaryColor = await inquirerSelect({
+    message: 'Primary color:',
+    choices: [
+      { value: 'blue' as const, name: 'Blue (default)' },
+      { value: 'green' as const, name: 'Green' },
+      { value: 'violet' as const, name: 'Violet' },
+      { value: 'orange' as const, name: 'Orange' },
+      { value: 'red' as const, name: 'Red' },
+    ],
+  });
 
-  const radiusIndex = await select('Border radius:', [
-    'None (sharp corners)',
-    'Small (0.25rem)',
-    'Medium (0.5rem) - recommended',
-    'Large (0.75rem)',
-  ]);
-  const radiusOptions = ['none', 'small', 'medium', 'large'] as const;
-  themeConfig.radius = radiusOptions[radiusIndex] ?? 'medium';
-  console.log();
+  themeConfig.radius = await inquirerSelect({
+    message: 'Border radius:',
+    choices: [
+      { value: 'none' as const, name: 'None (sharp corners)' },
+      { value: 'small' as const, name: 'Small (0.25rem)' },
+      { value: 'medium' as const, name: 'Medium (0.5rem) - recommended' },
+      { value: 'large' as const, name: 'Large (0.75rem)' },
+    ],
+  });
 
-  const darkModeIndex = await select('Dark mode default:', [
-    'System (follow OS preference) - recommended',
-    'Light (always light)',
-    'Dark (always dark)',
-  ]);
-  const darkModeOptions = ['system', 'light', 'dark'] as const;
-  themeConfig.darkMode = darkModeOptions[darkModeIndex] ?? 'system';
-  console.log();
+  themeConfig.darkMode = await inquirerSelect({
+    message: 'Dark mode default:',
+    choices: [
+      { value: 'system' as const, name: 'System (follow OS preference) - recommended' },
+      { value: 'light' as const, name: 'Light (always light)' },
+      { value: 'dark' as const, name: 'Dark (always dark)' },
+    ],
+  });
 
   // Generate globals.css
   const globalsCssPath = path.join(process.cwd(), 'src/app/globals.css');
@@ -550,64 +531,60 @@ async function main(): Promise<void> {
   };
 
   // Rate Limiting
-  config.rateLimit.enabled = await confirm(
-    'Enable rate limiting? (Prevents brute force attacks)',
-    true
-  );
+  config.rateLimit.enabled = await inquirerConfirm({
+    message: 'Enable rate limiting? (Prevents brute force attacks)',
+    default: true,
+  });
   if (config.rateLimit.enabled) {
-    const customRate = await confirm('  Use custom rate limits?', false);
+    const customRate = await inquirerConfirm({ message: 'Use custom rate limits?', default: false });
     if (customRate) {
-      const loginMax = await question('  Login max attempts per minute [5]: ');
+      const loginMax = await inquirerInput({ message: 'Login max attempts per minute [5]:' });
       if (loginMax.trim()) config.rateLimit.login.maxAttempts = parseInt(loginMax, 10);
-      const apiMax = await question('  API max requests per minute [100]: ');
+      const apiMax = await inquirerInput({ message: 'API max requests per minute [100]:' });
       if (apiMax.trim()) config.rateLimit.api.maxAttempts = parseInt(apiMax, 10);
     }
   }
-  console.log();
 
   // Account Lockout
-  config.lockout.enabled = await confirm(
-    'Enable account lockout? (Lock after failed attempts)',
-    true
-  );
+  config.lockout.enabled = await inquirerConfirm({
+    message: 'Enable account lockout? (Lock after failed attempts)',
+    default: true,
+  });
   if (config.lockout.enabled) {
-    const customLockout = await confirm('  Use custom lockout settings?', false);
+    const customLockout = await inquirerConfirm({ message: 'Use custom lockout settings?', default: false });
     if (customLockout) {
-      const maxAttempts = await question('  Max failed attempts before lockout [5]: ');
+      const maxAttempts = await inquirerInput({ message: 'Max failed attempts before lockout [5]:' });
       if (maxAttempts.trim()) config.lockout.maxFailedAttempts = parseInt(maxAttempts, 10);
-      const duration = await question('  Lockout duration in minutes [15]: ');
+      const duration = await inquirerInput({ message: 'Lockout duration in minutes [15]:' });
       if (duration.trim()) config.lockout.lockoutDurationMs = parseInt(duration, 10) * 60_000;
     }
   }
-  console.log();
 
   // Password Requirements
-  console.log('Password requirements:');
-  const minLen = await question('  Minimum length [8]: ');
+  const minLen = await inquirerInput({ message: 'Minimum password length [8]:' });
   if (minLen.trim()) config.password.minLength = parseInt(minLen, 10);
-  config.password.requireUppercase = await confirm('  Require uppercase letter?', false);
-  config.password.requireLowercase = await confirm('  Require lowercase letter?', false);
-  config.password.requireNumbers = await confirm('  Require number?', false);
-  config.password.requireSymbols = await confirm('  Require symbol?', false);
-  console.log();
+  config.password.requireUppercase = await inquirerConfirm({ message: 'Require uppercase letter?', default: false });
+  config.password.requireLowercase = await inquirerConfirm({ message: 'Require lowercase letter?', default: false });
+  config.password.requireNumbers = await inquirerConfirm({ message: 'Require number?', default: false });
+  config.password.requireSymbols = await inquirerConfirm({ message: 'Require symbol?', default: false });
 
   // Session Security
-  config.session.invalidateOnPasswordChange = await confirm(
-    'Invalidate sessions on password change? (Security best practice)',
-    true
-  );
-  console.log();
+  config.session.invalidateOnPasswordChange = await inquirerConfirm({
+    message: 'Invalidate sessions on password change? (Security best practice)',
+    default: true,
+  });
 
   // Audit Logging
-  config.audit.enabled = await confirm('Enable audit logging? (Track security events)', true);
+  config.audit.enabled = await inquirerConfirm({ message: 'Enable audit logging? (Track security events)', default: true });
   if (config.audit.enabled) {
-    const storageIndex = await select('  Storage method:', [
-      'Database (recommended)',
-      'Console only',
-    ]);
-    config.audit.storage = storageIndex === 0 ? 'database' : 'console';
+    config.audit.storage = await inquirerSelect({
+      message: 'Storage method:',
+      choices: [
+        { value: 'database' as const, name: 'Database (recommended)' },
+        { value: 'console' as const, name: 'Console only' },
+      ],
+    });
   }
-  console.log();
 
   // Generate security.ts
   const securityConfigContent = `// ============================================
@@ -708,7 +685,7 @@ export type AuditEvent = (typeof security.audit.events)[number];
     execSync('npx prisma db push', { stdio: 'inherit' });
     console.log('✓ Database schema pushed\n');
 
-    const shouldSeed = await confirm('Seed database with default roles?', true);
+    const shouldSeed = await inquirerConfirm({ message: 'Seed database with default roles?', default: true });
     if (shouldSeed) {
       console.log('Seeding database...');
       execSync('npx tsx prisma/seed.ts', { stdio: 'inherit' });
@@ -765,8 +742,6 @@ export type AuditEvent = (typeof security.audit.events)[number];
       break;
   }
   console.log();
-
-  rl.close();
 }
 
 main().catch((error) => {
