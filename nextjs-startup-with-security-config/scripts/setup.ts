@@ -8,9 +8,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   select as inquirerSelect,
-  confirm as inquirerConfirm,
   input as inquirerInput,
 } from '@inquirer/prompts';
+
+async function inquirerConfirm({ message, default: defaultYes = true }: { message: string; default?: boolean }): Promise<boolean> {
+  return inquirerSelect({
+    message,
+    choices: [
+      { value: true, name: 'Yes' },
+      { value: false, name: 'No' },
+    ],
+    default: defaultYes,
+  });
+}
 
 // ============================================
 // THEME CONFIGURATION
@@ -390,6 +400,15 @@ async function main(): Promise<void> {
       );
       fs.writeFileSync(envPath, envContent);
       console.log('✓ Generated secure JWT_SECRET\n');
+
+      // Port configuration
+      const port = await inquirerInput({ message: 'Port number [3000]:' });
+      if (port.trim()) {
+        let portContent = fs.readFileSync(envPath, 'utf-8');
+        portContent = portContent.replace(/PORT=\d+/, `PORT=${port.trim()}`);
+        fs.writeFileSync(envPath, portContent);
+      }
+      console.log(`✓ Port set to ${port.trim() || '3000'}\n`);
     }
   } else {
     console.log('✓ .env.local already exists\n');
